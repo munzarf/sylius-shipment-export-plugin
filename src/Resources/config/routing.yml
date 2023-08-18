@@ -1,14 +1,14 @@
 threebrs_admin_Shipment_export:
     path: /shipment-exports/{exporterName}
     defaults:
-        _controller: ThreeBRS\SyliusShipmentExportPlugin\Controller\ShipmentExportController:showAllUnshipShipments
+        _controller: ThreeBRS\SyliusShipmentExportPlugin\Controller\ShipmentExportController::showAllUnshipShipments
 
 threebrs_admin_export_shipments:
     path: /shipment-exports/export/{exporterName}
     defaults:
-        _controller: ThreeBRS\SyliusShipmentExportPlugin\Controller\ShipmentExportController:exportShipmentsAction
+        _controller: ThreeBRS\SyliusShipmentExportPlugin\Controller\ShipmentExportController::exportShipmentsAction
 
 threebrs_admin_change_state_shipments:
     path: /shipment-exports/mark/{exporterName}
     defaults:
-        _controller: ThreeBRS\SyliusShipmentExportPlugin\Controller\ShipmentExportController:markAsSend
+        _controller: ThreeBRS\SyliusShipmentExportPlugin\Controller\ShipmentExportController::markAsSend
