@@ -9,13 +9,8 @@ use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 
 final class ShipmentExportMenuBuilder
 {
-    /** @var ParameterBagInterface */
-    private $parameterBag;
-
-    public function __construct(
-        ParameterBagInterface $parameterBag
-    ) {
-        $this->parameterBag = $parameterBag;
+    public function __construct(private ParameterBagInterface $parameterBag)
+    {
     }
 
     public function buildMenu(MenuBuilderEvent $event): void

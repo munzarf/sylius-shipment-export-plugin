@@ -1,6 +1,5 @@
 imports:
     - vendor/sylius/sylius/src/Sylius/Behat/Resources/config/suites.yml
-    - tests/Behat/Resources/suites.yml
 
 default:
     extensions:
@@ -11,12 +10,12 @@ default:
             sessions:
                 symfony:
                     symfony: ~
-            show_auto: false
+            show_auto: false # do not automatically open browser on error
 
         FriendsOfBehat\SymfonyExtension:
             bootstrap: tests/Application/config/bootstrap.php
             kernel:
-                class: Tests\ThreeBRS\SyliusShipmentExportPlugin\Application\Kernel
+                class: Tests\ThreeBRS\SyliusShipmentExportPlugin\Kernel
 
         FriendsOfBehat\VariadicExtension: ~
 

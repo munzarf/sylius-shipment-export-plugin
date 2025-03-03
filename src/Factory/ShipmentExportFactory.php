@@ -11,26 +11,14 @@ use ThreeBRS\SyliusShipmentExportPlugin\Model\ShipmentExporterInterface;
 
 class ShipmentExportFactory
 {
-    /** @var RequestStack */
-    private $requestStack;
-
-    /** @var ServiceRegistryInterface */
-    private $serviceRegistry;
-
-    public function __construct(
-        RequestStack $requestStack,
-        ServiceRegistryInterface $serviceRegistry
-    ) {
-        $this->requestStack = $requestStack;
-        $this->serviceRegistry = $serviceRegistry;
+    public function __construct(private RequestStack $requestStack, private ServiceRegistryInterface $serviceRegistry)
+    {
     }
 
     /**
-     * @return ShipmentExporterInterface|null
-     *
      * @throws NotFoundException
      */
-    public function getExporter()
+    public function getExporter(): ?ShipmentExporterInterface
     {
         $request = $this->requestStack->getCurrentRequest();
         if ($request === null) {
@@ -38,11 +26,16 @@ class ShipmentExportFactory
         }
 
         $exporterName = $request->get('exporterName');
+        if ($exporterName === null) {
+            return null;
+        }
+
+        assert(is_string($exporterName));
 
         if ($this->serviceRegistry->has($exporterName) === false) {
             throw new  NotFoundException(sprintf(
                 'Exporter with %s exporterName could not be found',
-                $exporterName
+                $exporterName,
             ));
         }
 

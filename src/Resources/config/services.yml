@@ -18,7 +18,6 @@ services:
             $parameterBag: '@parameter_bag'
             $templatingEngine: '@twig'
             $entityManager: '@doctrine.orm.default_entity_manager'
-            $requestStack: '@request_stack'
             $stateMachineFatory: '@sm.factory'
             $eventDispatcher: '@event_dispatcher'
             $router: '@router'

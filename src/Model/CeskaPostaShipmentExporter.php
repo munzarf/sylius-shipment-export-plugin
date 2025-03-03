@@ -12,13 +12,8 @@ use Sylius\Component\Currency\Converter\CurrencyConverter;
 
 class CeskaPostaShipmentExporter implements ShipmentExporterInterface
 {
-    /** @var CurrencyConverter */
-    private $currencyConverter;
-
-    public function __construct(
-        CurrencyConverter $currencyConverter
-    ) {
-        $this->currencyConverter = $currencyConverter;
+    public function __construct(private CurrencyConverter $currencyConverter)
+    {
     }
 
     private function convert(int $amount, string $sourceCurrencyCode, string $targetCurrencyCode): int
@@ -26,11 +21,19 @@ class CeskaPostaShipmentExporter implements ShipmentExporterInterface
         return $this->currencyConverter->convert($amount, $sourceCurrencyCode, $targetCurrencyCode);
     }
 
+    /**
+     * @return array<string>
+     */
     public function getShippingMethodsCodes(): array
     {
         return ['ceska-posta-do-ruky', 'ceska-posta-na-postu'];
     }
 
+    /**
+     * @param array<string, mixed> $questionsArray
+     *
+     * @return array<int|string, bool|float|int|string|null>
+     */
     public function getRow(ShipmentInterface $shipment, array $questionsArray): array
     {
         /**
@@ -87,7 +90,7 @@ class CeskaPostaShipmentExporter implements ShipmentExporterInterface
             $totalAmount / 100,
             0,
             ',',
-            ''
+            '',
         );
 
         assert($address->getPostcode() !== null);
@@ -175,7 +178,7 @@ class CeskaPostaShipmentExporter implements ShipmentExporterInterface
             $order->getNumber(),
 
             /** 18 - Typ Zásilky - např.: DR (Do ruky), NP (Na poštu) */
-            $method ?? '',
+            $method,
 
             /** 19 - Měna (ISO) */
             'CZK',
@@ -203,6 +206,9 @@ class CeskaPostaShipmentExporter implements ShipmentExporterInterface
         return null;
     }
 
+    /**
+     * @return array<array<int|string, bool|float|int|string|null>>|null
+     */
     public function getHeaders(): ?array
     {
         return null;

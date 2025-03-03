@@ -16,69 +16,37 @@ use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\EventDispatcher\GenericEvent;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\HttpFoundation\Session\Flash\FlashBagInterface;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use Symfony\Component\Routing\RouterInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
+use ThreeBRS\SyliusShipmentExportPlugin\Controller\Partials\GetFlashBagTrait;
 use ThreeBRS\SyliusShipmentExportPlugin\Model\ShipmentExporterInterface;
 use Twig\Environment;
 
 class ShipmentExportController
 {
-    /** @var ParameterBagInterface */
-    private $parameterBag;
+    use GetFlashBagTrait;
 
-    /** @var Environment */
-    private $templatingEngine;
-
-    /** @var EntityManager */
-    private $entityManager;
-
-    /** @var FlashBagInterface */
-    private $flashBag;
-
-    /** @var FactoryInterface */
-    private $stateMachineFatory;
-
-    /** @var EventDispatcherInterface */
-    private $eventDispatcher;
-
-    /** @var RouterInterface */
-    private $router;
-
-    /** @var ShipmentExporterInterface */
-    private $shipmentExporter;
-
-    /** @var ShipmentRepositoryInterface */
+    /** @var ShipmentRepositoryInterface&EntityRepository */
     private $shipmentRepository;
 
-    /** @var TranslatorInterface */
-    private $translator;
-
+    /**
+     * @param ShipmentRepositoryInterface&EntityRepository $shipmentRepository
+     */
     public function __construct(
-        Environment $templatingEngine,
-        EntityManager $entityManager,
-        RequestStack $requestStack,
-        FactoryInterface $stateMachineFatory,
-        EventDispatcherInterface $eventDispatcher,
-        RouterInterface $router,
-        ShipmentExporterInterface $shipmentExporter,
-        ParameterBagInterface $parameterBag,
+        private Environment $templatingEngine,
+        private EntityManager $entityManager,
+        private FactoryInterface $stateMachineFatory,
+        private EventDispatcherInterface $eventDispatcher,
+        private RouterInterface $router,
+        private ShipmentExporterInterface $shipmentExporter,
+        private ParameterBagInterface $parameterBag,
         ShipmentRepositoryInterface $shipmentRepository,
-        TranslatorInterface $translator
+        private TranslatorInterface $translator,
     ) {
-        $this->templatingEngine = $templatingEngine;
-        $this->entityManager = $entityManager;
-        $this->flashBag = $requestStack->getSession()->getFlashBag();
-        $this->stateMachineFatory = $stateMachineFatory;
-        $this->eventDispatcher = $eventDispatcher;
-        $this->router = $router;
-        $this->shipmentExporter = $shipmentExporter;
-        $this->parameterBag = $parameterBag;
+        assert($shipmentRepository instanceof EntityRepository);
         $this->shipmentRepository = $shipmentRepository;
-        $this->translator = $translator;
     }
 
     public function showAllUnshipShipments(string $exporterName): Response
@@ -94,23 +62,26 @@ class ShipmentExportController
                     'exporterName' => $exporterName,
                     'exporter' => $this->shipmentExporter,
                     'exporterLabel' => $this->getExporterLabel($exporterName),
-                ]
-            )
+                ],
+            ),
         );
     }
 
     public function exportShipmentsAction(Request $request, string $exporterName): StreamedResponse
     {
-        $ids = $request->get('ids', []);
+        /** @var array<string|int> $ids */
+        $ids = (array) $request->get('ids', []);
         $shipments = $this->getShipmentsByIds($ids);
-        $questionsArray = $request->get('questions', []);
+        /** @var array<string, mixed> $questionsArray */
+        $questionsArray = (array) $request->get('questions', []);
 
         return $this->doCsvFile($shipments, $exporterName, $questionsArray);
     }
 
     public function markAsSend(Request $request, string $exporterName): RedirectResponse
     {
-        $ids = $request->get('ids', []);
+        /** @var array<string|int> $ids */
+        $ids = (array) $request->get('ids', []);
         $shipments = $this->getShipmentsByIds($ids);
 
         foreach ($shipments as $shipment) {
@@ -127,7 +98,7 @@ class ShipmentExportController
         }
 
         $message = $this->translator->trans('threebrs.ui.shippingExport.exportAndShipSuccess', ['{{ count }}' => count($shipments)]);
-        $this->flashBag->add('success', $message);
+        $this->getFlashBag($request)->add('success', $message);
 
         $url = $this->router->generate('threebrs_admin_Shipment_export', ['exporterName' => $exporterName]);
 
@@ -141,12 +112,14 @@ class ShipmentExportController
         return array_key_exists($exporterCode, $exporters) ? $exporters[$exporterCode] : '';
     }
 
+    /**
+     * @param array<int|string> $ids
+     *
+     * @return array<ShipmentInterface>
+     */
     public function getShipmentsByIds(array $ids): array
     {
-        /** @var EntityRepository $shipmentRepository */
-        $shipmentRepository = $this->shipmentRepository;
-
-        return $shipmentRepository->createQueryBuilder('s')
+        return $this->shipmentRepository->createQueryBuilder('s')
             ->select('s')
             ->join('s.order', 'o')
             ->andWhere('s.id in (:ids)')
@@ -156,12 +129,14 @@ class ShipmentExportController
             ->getResult();
     }
 
+    /**
+     * @param array<string> $shippingMethodCodes
+     *
+     * @return array<ShipmentInterface>
+     */
     public function getReadyShipments(array $shippingMethodCodes): array
     {
-        /** @var EntityRepository $shipmentRepository */
-        $shipmentRepository = $this->shipmentRepository;
-
-        return $shipmentRepository->createQueryBuilder('s')
+        return $this->shipmentRepository->createQueryBuilder('s')
             ->select('s')
             ->join('s.method', 'm')
             ->join('s.order', 'o')
@@ -196,6 +171,10 @@ class ShipmentExportController
         $stateMachine->apply(ShipmentTransitions::TRANSITION_SHIP);
     }
 
+    /**
+     * @param array<ShipmentInterface> $shipments
+     * @param array<string, mixed> $questionsArray
+     */
     public function doCsvFile(array $shipments, string $shippingMethodCode, array $questionsArray): StreamedResponse
     {
         $response = new StreamedResponse();
@@ -210,7 +189,7 @@ class ShipmentExportController
                     fputcsv(
                         $handle,
                         $header,
-                        $this->shipmentExporter->getDelimiter()
+                        $this->shipmentExporter->getDelimiter(),
                     );
                 }
             }
@@ -220,7 +199,7 @@ class ShipmentExportController
                 fputcsv(
                     $handle,
                     $this->shipmentExporter->getRow($shipment, $questionsArray),
-                    $this->shipmentExporter->getDelimiter()
+                    $this->shipmentExporter->getDelimiter(),
                 );
             }
 

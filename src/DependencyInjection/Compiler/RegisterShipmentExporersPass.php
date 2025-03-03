@@ -16,6 +16,7 @@ final class RegisterShipmentExporersPass implements CompilerPassInterface
             return;
         }
 
+        // @phpstan-ignore-next-line
         $registry = $container->getDefinition('threebrs.shipment_exporter');
 
         $exporterRegistry = $container->findTaggedServiceIds('threebrs.shipment_exporter_type');
